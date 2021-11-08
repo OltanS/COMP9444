@@ -49,18 +49,39 @@ class Network(nn.Module):
 
     def __init__(self):
         super().__init__()
+
         
     def forward(self, input):
         pass
 
-net = Network()
+class DenseNet(nn.Module):
+
+    def __init__(self, num_hid):
+        super().__init__()
+        self.fc1 = nn.Linear(3*80*80,num_hid)
+        self.fc2 = nn.Linear(num_hid + (3*80*80), num_hid)
+        self.fc3 = nn.Linear(num_hid + num_hid + (3*80*80), 8)
+
+        
+    def forward(self, input):
+        # print(f"input shape: {input.shape}")
+        input = input.view(200,-1)
+        # print(f"adjusted input shape: {input.shape}")
+        self.hid1 = torch.tanh(self.fc1(input))
+        self.hid2 = torch.tanh(self.fc2(torch.cat((input,self.hid1),dim=1)))
+        self.output = F.log_softmax(self.fc3(torch.cat((input,self.hid1,self.hid2),dim=1)),dim=1)
+        # print(f"Output Shape: {self.output.shape}")
+        return self.output
+
+# net = Network()
+net = DenseNet(50)
     
 ############################################################################
 ######      Specify the optimizer and loss function                   ######
 ############################################################################
-optimizer = None
+optimizer = optim.Adam(net.parameters(),lr=0.005)
 
-loss_func = None
+loss_func = nn.CrossEntropyLoss()
 
 
 ############################################################################
@@ -81,4 +102,4 @@ scheduler = None
 dataset = "./data"
 train_val_split = 0.8
 batch_size = 200
-epochs = 10
+epochs = 200
