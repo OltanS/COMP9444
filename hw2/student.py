@@ -94,8 +94,8 @@ class ConvNet(nn.Module):
         input = self.max_pool_two(input)
         # print(f"input shape after second max pooling: {input.shape}")
         input = input.view(-1,17*17*70)
-        input = F.log_softmax(self.fc1(input),dim=1)
-        return input # CHANGE CODE HERE       
+        output = self.fc1(input)
+        return output # CHANGE CODE HERE       
 
 # net = Network()
 # net = DenseNet(50)
@@ -104,7 +104,7 @@ net = ConvNet()
 ############################################################################
 ######      Specify the optimizer and loss function                   ######
 ############################################################################
-optimizer = optim.Adam(net.parameters(),lr=0.001, betas=(0.9,0.999))
+optimizer = optim.Adam(net.parameters(),lr=0.001, betas=(0.9,0.999), weight_decay=0.0001)
 
 loss_func = nn.CrossEntropyLoss()
 
