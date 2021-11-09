@@ -54,51 +54,89 @@ class Network(nn.Module):
     def forward(self, input):
         pass
 
-class DenseNet(nn.Module):
+class LinNet(nn.Module):
 
     def __init__(self, num_hid):
         super().__init__()
-        self.fc1 = nn.Linear(3*80*80,num_hid)
-        self.fc2 = nn.Linear(num_hid + (3*80*80), num_hid)
-        self.fc3 = nn.Linear(num_hid + num_hid + (3*80*80), 8)
+        # self.fc1 = nn.Linear(3*80*80,num_hid)
+        # self.fc2 = nn.Linear(num_hid + (3*80*80), num_hid)
+        # self.fc3 = nn.Linear(num_hid + num_hid + (3*80*80), 8)
+        # self.fc4 = nn.Linear()
+        self.linear_layer = nn.Sequential(
+            nn.Linear(3*80*80,num_hid),
+            nn.ReLU(),
+            nn.Linear(num_hid, num_hid),
+            nn.ReLU(),
+            nn.Linear(num_hid, num_hid),
+            nn.ReLU(),
+            nn.Linear(num_hid, num_hid),
+            nn.ReLU(),
+            nn.Linear(num_hid, num_hid),
+            nn.ReLU(),
+            nn.Linear(num_hid, num_hid),
+            nn.ReLU(),
+            nn.Linear(num_hid, num_hid),
+            nn.ReLU(),
+            nn.Linear(num_hid, num_hid),
+            nn.ReLU(),
+            nn.Linear(num_hid, num_hid),
+            nn.ReLU(),
+            nn.Linear(num_hid, 8)           
+        )
+
 
         
     def forward(self, input):
-        # print(f"input shape: {input.shape}")
-        input = input.view(200,-1)
-        # print(f"adjusted input shape: {input.shape}")
-        self.hid1 = torch.tanh(self.fc1(input))
-        self.hid2 = torch.tanh(self.fc2(torch.cat((input,self.hid1),dim=1)))
-        self.output = F.log_softmax(self.fc3(torch.cat((input,self.hid1,self.hid2),dim=1)),dim=1)
-        # print(f"Output Shape: {self.output.shape}")
+        # # print(f"input shape: {input.shape}")
+        # input = input.view(200,-1)
+        # # print(f"adjusted input shape: {input.shape}")
+        # self.hid1 = torch.tanh(self.fc1(input))
+        # self.hid2 = torch.tanh(self.fc2(torch.cat((input,self.hid1),dim=1)))
+        # self.output = self.fc3(torch.cat((input,self.hid1,self.hid2),dim=1))
+        # # print(f"Output Shape: {self.output.shape}")
+
+        input = input.view(200, -1)
+        self.output = self.linear_layer(input)
         return self.output
 
 class ConvNet(nn.Module):
     def __init__(self):
         super().__init__()
-        self.conv_layer_one = nn.Conv2d(in_channels=3, out_channels=20, kernel_size=(5,5))
-        self.max_pool_one = nn.MaxPool2d(kernel_size=(2,2),stride=(2,2))
-        self.conv_layer_two = nn.Conv2d(in_channels=20, out_channels=70, kernel_size=(5,5))
-        self.max_pool_two = nn.MaxPool2d(kernel_size=(2,2),stride=(2,2))
-        self.fc1 = nn.Linear(in_features=17*17*70,out_features=10)
+
+        self.convolutional_layer = nn.Sequential(
+            nn.Conv2d(in_channels=3, out_channels=6, kernel_size=(5,5)),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=(2,2),stride=(2,2),padding=0),
+            nn.Conv2d(in_channels=6, out_channels=16, kernel_size=(5,5)),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=(2,2),stride=(2,2),padding=0),
+            nn.Conv2d(in_channels=16, out_channels=120, kernel_size=(5,5)),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=(2,2),stride=(2,2),padding=0),
+            nn.Conv2d(in_channels=120, out_channels=120, kernel_size=(5,5)),
+            nn.ReLU()          
+        )
+
+        self.linear_layer = nn.Sequential(
+            nn.Dropout(),
+            nn.Linear(in_features=2*2*120, out_features=84),
+            nn.ReLU(),
+            nn.Linear(in_features=84, out_features=84),
+            nn.ReLU(),
+            nn.Linear(in_features=84, out_features=84),
+            nn.ReLU()
+        )
         
     def forward(self, input):
-        # print(f"input shape as input: {input.shape}")
-        # input = input.view(200,-1)
-        input = F.relu(self.conv_layer_one(input))
-        # print(f"input shape after first conv layer: {input.shape}")
-        input = self.max_pool_one(input)
-        # print(f"input shape after max pool one: {input.shape}")
-        input = F.relu(self.conv_layer_two(input))
-        # print(f"input shape after second conv layer: {input.shape}")
-        input = self.max_pool_two(input)
-        # print(f"input shape after second max pooling: {input.shape}")
-        input = input.view(-1,17*17*70)
-        output = self.fc1(input)
-        return output # CHANGE CODE HERE       
+        input = self.convolutional_layer(input)
+        # print(f"input shape: {input.shape}")
+        input = input.view(-1,2*2*120)
+        output = self.linear_layer(input)  
+        return output
+             
 
 # net = Network()
-# net = DenseNet(50)
+# net = LinNet(60)
 net = ConvNet()
     
 ############################################################################
