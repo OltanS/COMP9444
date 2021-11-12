@@ -37,7 +37,14 @@ def transform(mode):
     You may specify different transforms for training and testing
     """
     if mode == 'train':
-        return transforms.ToTensor()
+        tf = transforms.Compose([
+            transforms.RandomAffine(degrees=0, translate=(0.2,0.2)),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+        ])
+
+        # return transforms.ToTensor()
+        return tf
     elif mode == 'test':
         return transforms.ToTensor()
 
@@ -121,9 +128,11 @@ class ConvNet(nn.Module):
             nn.Dropout(),
             nn.Linear(in_features=2*2*120, out_features=84),
             nn.ReLU(),
+            nn.Dropout(),
             nn.Linear(in_features=84, out_features=84),
             nn.ReLU(),
-            nn.Linear(in_features=84, out_features=84),
+            nn.Dropout(),
+            nn.Linear(in_features=84, out_features=8),
             nn.ReLU()
         )
         
@@ -133,7 +142,7 @@ class ConvNet(nn.Module):
         input = input.view(-1,2*2*120)
         output = self.linear_layer(input)  
         return output
-             
+            
 
 # net = Network()
 # net = LinNet(60)
