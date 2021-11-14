@@ -148,12 +148,11 @@ class Block(nn.Module):
     def __init__(self, in_channels, out_channels, identity_downsample=None, stride=1):
         super(Block, self).__init__()
         self.num_layers = 18
-        self.expansion = 1
 
         self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1)
         self.bn1 = nn.BatchNorm2d(out_channels)
-        self.conv2 = nn.Conv2d(out_channels, out_channels * self.expansion, kernel_size=1, stride=1, padding=0)
-        self.bn2 = nn.BatchNorm2d(out_channels * self.expansion)
+        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=1, stride=1, padding=0)
+        self.bn2 = nn.BatchNorm2d(out_channels)
         self.relu = nn.ReLU()
         self.identity_downsample = identity_downsample
 
@@ -178,7 +177,6 @@ class ResNet(nn.Module):
     def __init__(self, block, image_channels, num_classes):
         super(ResNet, self).__init__()
         self.num_layers = 18
-        self.expansion = 1
 
         self.in_channels = 64
         self.conv1 = nn.Conv2d(image_channels, 64, kernel_size=7, stride=2, padding=3)
@@ -193,7 +191,7 @@ class ResNet(nn.Module):
         self.layer4 = self.make_layers(self.num_layers, block, 2, intermediate_channels=512, stride=2)
 
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(512 * self.expansion, num_classes)    
+        self.fc = nn.Linear(512, num_classes)    
 
 
     def forward(self, input):
@@ -215,10 +213,10 @@ class ResNet(nn.Module):
     def make_layers(self, num_layers, block, num_residual_blocks, intermediate_channels, stride):
         layers = []
 
-        identity_downsample = nn.Sequential(nn.Conv2d(self.in_channels, intermediate_channels*self.expansion, kernel_size=1, stride=stride),
-                                            nn.BatchNorm2d(intermediate_channels*self.expansion))
+        identity_downsample = nn.Sequential(nn.Conv2d(self.in_channels, intermediate_channels, kernel_size=1, stride=stride),
+                                            nn.BatchNorm2d(intermediate_channels))
         layers.append(block(self.in_channels, intermediate_channels, identity_downsample, stride))
-        self.in_channels = intermediate_channels * self.expansion # 256
+        self.in_channels = intermediate_channels # 256
         for i in range(num_residual_blocks - 1):
             layers.append(block(self.in_channels, intermediate_channels)) # 256 -> 64, 64*4 (256) again
         return nn.Sequential(*layers)
