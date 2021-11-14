@@ -147,12 +147,12 @@ class ConvNet(nn.Module):
 class Block(nn.Module):
     def __init__(self, in_channels, out_channels, identity_downsample=None, stride=1):
         super(Block, self).__init__()
-        self.num_layers = 50
-        self.expansion = 4
+        self.num_layers = 18
+        self.expansion = 1
 
-        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0)
-        self.bn1 = nn.BatchNorm2d(out_channels)        
-        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=stride, padding=1)
+        # self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0)
+        # self.bn1 = nn.BatchNorm2d(out_channels)        
+        self.conv2 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1)
         self.bn2 = nn.BatchNorm2d(out_channels)
         self.conv3 = nn.Conv2d(out_channels, out_channels * self.expansion, kernel_size=1, stride=1, padding=0)
         self.bn3 = nn.BatchNorm2d(out_channels * self.expansion)
@@ -161,9 +161,6 @@ class Block(nn.Module):
 
     def forward(self, input):
         identity = input
-        input = self.conv1(input)
-        input = self.bn1(input)
-        input = self.relu(input)
         input = self.conv2(input)
         input = self.bn2(input)
         input = self.relu(input)
@@ -182,8 +179,8 @@ class Block(nn.Module):
 class ResNet(nn.Module):
     def __init__(self, block, image_channels, num_classes):
         super(ResNet, self).__init__()
-        self.num_layers = 50
-        self.expansion = 4
+        self.num_layers = 18
+        self.expansion = 1
 
         self.in_channels = 64
         self.conv1 = nn.Conv2d(image_channels, 64, kernel_size=7, stride=2, padding=3)
@@ -192,10 +189,10 @@ class ResNet(nn.Module):
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
 
-        self.layer1 = self.make_layers(self.num_layers, block, 3, intermediate_channels=64, stride=1)
-        self.layer2 = self.make_layers(self.num_layers, block, 4, intermediate_channels=128, stride=2)
-        self.layer3 = self.make_layers(self.num_layers, block, 6, intermediate_channels=256, stride=2)
-        self.layer4 = self.make_layers(self.num_layers, block, 3, intermediate_channels=512, stride=2)
+        self.layer1 = self.make_layers(self.num_layers, block, 2, intermediate_channels=64, stride=1)
+        self.layer2 = self.make_layers(self.num_layers, block, 2, intermediate_channels=128, stride=2)
+        self.layer3 = self.make_layers(self.num_layers, block, 2, intermediate_channels=256, stride=2)
+        self.layer4 = self.make_layers(self.num_layers, block, 2, intermediate_channels=512, stride=2)
 
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(512 * self.expansion, num_classes)    
