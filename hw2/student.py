@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
 """
+
+@UNSW COMP9444 2021/T3 Assignment 2
+14/11/2021
+
+@authors 
+Shakeel Anver FILLYOURZID
+Oltan Sevinc z5230739 
+
 student.py
 
 UNSW COMP9444 Neural Networks and Deep Learning
@@ -11,6 +19,14 @@ hw2main.py file unmodified, and you are only using the approved packages.
 You have been given some default values for the variables train_val_split,
 batch_size as well as the transform function.
 You are encouraged to modify these to improve the performance of your model.
+
+Acknowledgements:
+
+RESNET implementation adapted from
+https://niko-gamulin.medium.com/resnet-implementation-with-pytorch-from-scratch-23cf3047cb93
+modified (and simplified) to fit the assignment application domain
+Approach chosen after research into most efficient methods for image classification
+
 
 """
 import torch
@@ -142,7 +158,6 @@ class ConvNet(nn.Module):
         input = input.view(-1,2*2*120)
         output = self.linear_layer(input)  
         return output
-
 
 class Layer(nn.Module):
     def __init__(self, in_channels, out_channels, identity_downsample=None, stride=1):
