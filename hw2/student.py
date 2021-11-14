@@ -150,22 +150,20 @@ class Block(nn.Module):
         self.num_layers = 18
         self.expansion = 1
 
-        # self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0)
-        # self.bn1 = nn.BatchNorm2d(out_channels)        
-        self.conv2 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1)
-        self.bn2 = nn.BatchNorm2d(out_channels)
-        self.conv3 = nn.Conv2d(out_channels, out_channels * self.expansion, kernel_size=1, stride=1, padding=0)
-        self.bn3 = nn.BatchNorm2d(out_channels * self.expansion)
+        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1)
+        self.bn1 = nn.BatchNorm2d(out_channels)
+        self.conv2 = nn.Conv2d(out_channels, out_channels * self.expansion, kernel_size=1, stride=1, padding=0)
+        self.bn2 = nn.BatchNorm2d(out_channels * self.expansion)
         self.relu = nn.ReLU()
         self.identity_downsample = identity_downsample
 
     def forward(self, input):
         identity = input
+        input = self.conv1(input)
+        input = self.bn1(input)
+        input = self.relu(input)
         input = self.conv2(input)
         input = self.bn2(input)
-        input = self.relu(input)
-        input = self.conv3(input)
-        input = self.bn3(input)
 
         if self.identity_downsample is not None:
             identity = self.identity_downsample(identity)
