@@ -174,7 +174,7 @@ class Block(nn.Module):
 
 
 class ResNet(nn.Module):
-    def __init__(self, block, num_classes):
+    def __init__(self, num_classes):
         super(ResNet, self).__init__()
         self.num_layers = 18
 
@@ -186,10 +186,10 @@ class ResNet(nn.Module):
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
         # create the blocks
-        self.layer1 = self.make_layers(block, 2, intermediate_channels=64, stride=1)
-        self.layer2 = self.make_layers(block, 2, intermediate_channels=128, stride=2)
-        self.layer3 = self.make_layers(block, 2, intermediate_channels=256, stride=2)
-        self.layer4 = self.make_layers(block, 2, intermediate_channels=512, stride=2)
+        self.layer1 = self.make_layers(2, intermediate_channels=64, stride=1)
+        self.layer2 = self.make_layers(2, intermediate_channels=128, stride=2)
+        self.layer3 = self.make_layers(2, intermediate_channels=256, stride=2)
+        self.layer4 = self.make_layers(2, intermediate_channels=512, stride=2)
 
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(512, num_classes)    
@@ -211,22 +211,24 @@ class ResNet(nn.Module):
         input = self.fc(input)
         return input       
 
-    def make_layers(self, block, num_residual_blocks, intermediate_channels, stride):
+    def make_layers(self, num_residual_blocks, intermediate_channels, stride):
         layers = []
 
         identity_downsample = nn.Sequential(nn.Conv2d(self.in_channels, intermediate_channels, kernel_size=1, stride=stride),
                                             nn.BatchNorm2d(intermediate_channels))
-        layers.append(block(self.in_channels, intermediate_channels, identity_downsample, stride))
+        block = Block(self.in_channels, intermediate_channels, identity_downsample, stride)
+        layers.append(block)
         self.in_channels = intermediate_channels # 256
         for i in range(num_residual_blocks - 1):
-            layers.append(block(self.in_channels, intermediate_channels)) # 256 -> 64, 64*4 (256) again
+            block = Block(self.in_channels, intermediate_channels)
+            layers.append(block) # 256 -> 64, 64*4 (256) again
         return nn.Sequential(*layers)
 
 
 # net = Network()
 # net = LinNet(60)
 # net = ConvNet()
-net = ResNet(Block, 8)
+net = ResNet(8)
     
 ############################################################################
 ######      Specify the optimizer and loss function                   ######
