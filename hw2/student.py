@@ -185,10 +185,10 @@ class ResNet(nn.Module):
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
 
-        self.layer1 = self.make_layers(self.num_layers, block, 2, intermediate_channels=64, stride=1)
-        self.layer2 = self.make_layers(self.num_layers, block, 2, intermediate_channels=128, stride=2)
-        self.layer3 = self.make_layers(self.num_layers, block, 2, intermediate_channels=256, stride=2)
-        self.layer4 = self.make_layers(self.num_layers, block, 2, intermediate_channels=512, stride=2)
+        self.layer1 = self.make_layers(block, 2, intermediate_channels=64, stride=1)
+        self.layer2 = self.make_layers(block, 2, intermediate_channels=128, stride=2)
+        self.layer3 = self.make_layers(block, 2, intermediate_channels=256, stride=2)
+        self.layer4 = self.make_layers(block, 2, intermediate_channels=512, stride=2)
 
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(512, num_classes)    
@@ -210,7 +210,7 @@ class ResNet(nn.Module):
         input = self.fc(input)
         return input       
 
-    def make_layers(self, num_layers, block, num_residual_blocks, intermediate_channels, stride):
+    def make_layers(self, block, num_residual_blocks, intermediate_channels, stride):
         layers = []
 
         identity_downsample = nn.Sequential(nn.Conv2d(self.in_channels, intermediate_channels, kernel_size=1, stride=stride),
