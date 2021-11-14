@@ -142,11 +142,97 @@ class ConvNet(nn.Module):
         input = input.view(-1,2*2*120)
         output = self.linear_layer(input)  
         return output
-            
+
+
+class Block(nn.Module):
+    def __init__(self, in_channels, out_channels, identity_downsample=None, stride=1):
+        super(Block, self).__init__()
+        self.num_layers = 50
+        self.expansion = 4
+
+        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0)
+        self.bn1 = nn.BatchNorm2d(out_channels)        
+        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=stride, padding=1)
+        self.bn2 = nn.BatchNorm2d(out_channels)
+        self.conv3 = nn.Conv2d(out_channels, out_channels * self.expansion, kernel_size=1, stride=1, padding=0)
+        self.bn3 = nn.BatchNorm2d(out_channels * self.expansion)
+        self.relu = nn.ReLU()
+        self.identity_downsample = identity_downsample
+
+    def forward(self, input):
+        identity = input
+        input = self.conv1(input)
+        input = self.bn1(input)
+        input = self.relu(input)
+        input = self.conv2(input)
+        input = self.bn2(input)
+        input = self.relu(input)
+        input = self.conv3(input)
+        input = self.bn3(input)
+
+        if self.identity_downsample is not None:
+            identity = self.identity_downsample(identity)
+
+        input += identity
+        input = self.relu(input)
+        return input
+
+
+
+class ResNet(nn.Module):
+    def __init__(self, block, image_channels, num_classes):
+        super(ResNet, self).__init__()
+        self.num_layers = 50
+        self.expansion = 4
+
+        self.in_channels = 64
+        self.conv1 = nn.Conv2d(image_channels, 64, kernel_size=7, stride=2, padding=3)
+        self.bn1 = nn.BatchNorm2d(64)
+        self.relu = nn.ReLU()
+        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+
+
+        self.layer1 = self.make_layers(self.num_layers, block, 3, intermediate_channels=64, stride=1)
+        self.layer2 = self.make_layers(self.num_layers, block, 4, intermediate_channels=128, stride=2)
+        self.layer3 = self.make_layers(self.num_layers, block, 6, intermediate_channels=256, stride=2)
+        self.layer4 = self.make_layers(self.num_layers, block, 3, intermediate_channels=512, stride=2)
+
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.fc = nn.Linear(512 * self.expansion, num_classes)    
+
+
+    def forward(self, input):
+        input = self.conv1(input)
+        input = self.bn1(input)
+        input = self.relu(input)
+        input = self.maxpool(input)
+
+        input = self.layer1(input)
+        input = self.layer2(input)
+        input = self.layer3(input)
+        input = self.layer4(input)
+
+        input = self.avgpool(input)
+        input = input.reshape(input.shape[0], -1)
+        input = self.fc(input)
+        return input       
+
+    def make_layers(self, num_layers, block, num_residual_blocks, intermediate_channels, stride):
+        layers = []
+
+        identity_downsample = nn.Sequential(nn.Conv2d(self.in_channels, intermediate_channels*self.expansion, kernel_size=1, stride=stride),
+                                            nn.BatchNorm2d(intermediate_channels*self.expansion))
+        layers.append(block(self.in_channels, intermediate_channels, identity_downsample, stride))
+        self.in_channels = intermediate_channels * self.expansion # 256
+        for i in range(num_residual_blocks - 1):
+            layers.append(block(self.in_channels, intermediate_channels)) # 256 -> 64, 64*4 (256) again
+        return nn.Sequential(*layers)
+
 
 # net = Network()
 # net = LinNet(60)
-net = ConvNet()
+# net = ConvNet()
+net = ResNet(Block, 3, 8)
     
 ############################################################################
 ######      Specify the optimizer and loss function                   ######
