@@ -174,17 +174,18 @@ class Block(nn.Module):
 
 
 class ResNet(nn.Module):
-    def __init__(self, block, image_channels, num_classes):
+    def __init__(self, block, num_classes):
         super(ResNet, self).__init__()
         self.num_layers = 18
 
         self.in_channels = 64
-        self.conv1 = nn.Conv2d(image_channels, 64, kernel_size=7, stride=2, padding=3)
+        # 3 because of 3 channel image
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3)
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU()
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
-
+        # create the blocks
         self.layer1 = self.make_layers(block, 2, intermediate_channels=64, stride=1)
         self.layer2 = self.make_layers(block, 2, intermediate_channels=128, stride=2)
         self.layer3 = self.make_layers(block, 2, intermediate_channels=256, stride=2)
@@ -225,7 +226,7 @@ class ResNet(nn.Module):
 # net = Network()
 # net = LinNet(60)
 # net = ConvNet()
-net = ResNet(Block, 3, 8)
+net = ResNet(Block, 8)
     
 ############################################################################
 ######      Specify the optimizer and loss function                   ######
