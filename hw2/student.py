@@ -144,10 +144,9 @@ class ConvNet(nn.Module):
         return output
 
 
-class Block(nn.Module):
+class Layer(nn.Module):
     def __init__(self, in_channels, out_channels, identity_downsample=None, stride=1):
-        super(Block, self).__init__()
-        self.num_layers = 18
+        super(Layer, self).__init__()
 
         self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1)
         self.bn1 = nn.BatchNorm2d(out_channels)
@@ -164,6 +163,7 @@ class Block(nn.Module):
         input = self.conv2(input)
         input = self.bn2(input)
 
+        # resize input so it can be added to the output of the layer
         if self.identity_downsample is not None:
             identity = self.identity_downsample(identity)
 
@@ -174,10 +174,8 @@ class Block(nn.Module):
 
 
 class ResNet(nn.Module):
-    def __init__(self, num_classes):
+    def __init__(self, output_classes):
         super(ResNet, self).__init__()
-        self.num_layers = 18
-
         self.in_channels = 64
         # 3 because of 3 channel image
         self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3)
@@ -186,42 +184,52 @@ class ResNet(nn.Module):
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
         # create the blocks
-        self.layer1 = self.make_layers(2, intermediate_channels=64, stride=1)
-        self.layer2 = self.make_layers(2, intermediate_channels=128, stride=2)
-        self.layer3 = self.make_layers(2, intermediate_channels=256, stride=2)
-        self.layer4 = self.make_layers(2, intermediate_channels=512, stride=2)
+        self.bl1 = self.make_blocks(2, 64, stride=1)
+        self.bl2 = self.make_blocks(2, 128, stride=2)
+        self.bl3 = self.make_blocks(2, 256, stride=2)
+        self.bl4 = self.make_blocks(2, 512, stride=2)
 
-        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(512, num_classes)    
+        self.fc = nn.Linear(512, output_classes)    
 
 
     def forward(self, input):
+        # initial processing before blocks
         input = self.conv1(input)
         input = self.bn1(input)
         input = self.relu(input)
         input = self.maxpool(input)
 
-        input = self.layer1(input)
-        input = self.layer2(input)
-        input = self.layer3(input)
-        input = self.layer4(input)
+        # run it through the blocks
+        input = self.bl1(input)
+        input = self.bl2(input)
+        input = self.bl3(input)
+        input = self.bl4(input)
 
-        input = self.avgpool(input)
-        input = input.reshape(input.shape[0], -1)
+        # final processing
+        avg_pool = nn.AdaptiveAvgPool2d((1, 1))
+        input = avg_pool(input)
+        # linearise for linear layer
+        input = input.view(input.shape[0], -1)
         input = self.fc(input)
         return input       
 
-    def make_layers(self, num_residual_blocks, intermediate_channels, stride):
+    def make_blocks(self, num_blocks, intermediate_channels, stride):
+        '''
+        Creates the blocks for the resnet structure
+        '''
         layers = []
-
+        # downsample so the addition operations work between differently sized input and output
+        # for the resnet skipping to function
         identity_downsample = nn.Sequential(nn.Conv2d(self.in_channels, intermediate_channels, kernel_size=1, stride=stride),
                                             nn.BatchNorm2d(intermediate_channels))
-        block = Block(self.in_channels, intermediate_channels, identity_downsample, stride)
-        layers.append(block)
+        layer = Layer(self.in_channels, intermediate_channels, identity_downsample, stride)
+        layers.append(layer)
+        # update in_channels to set up next layers correctly
         self.in_channels = intermediate_channels # 256
-        for i in range(num_residual_blocks - 1):
-            block = Block(self.in_channels, intermediate_channels)
-            layers.append(block) # 256 -> 64, 64*4 (256) again
+        for i in range(num_blocks - 1):
+            layer = Layer(self.in_channels, intermediate_channels)
+            layers.append(layer) # 256 -> 64, 64*4 (256) again
+        # unpack layers list and make a block of all the sequential layers
         return nn.Sequential(*layers)
 
 
