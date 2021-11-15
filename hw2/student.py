@@ -204,11 +204,13 @@ class ResNet(nn.Module):
         self.bl3 = self.make_blocks(2, 256, stride=2)
         self.bl4 = self.make_blocks(2, 512, stride=2)
 
-        self.fc = nn.Sequential(
-            nn.Linear(512, 512),
-            nn.Dropout(),
-            nn.Linear(512, output_classes)
-        )
+        self.fc = nn.Linear(512, output_classes)
+        
+        #self.fc = nn.Sequential(
+        #    nn.Linear(512, 512),
+        #    nn.Dropout(),
+        # self.fc = nn.Linear(512, output_classes)
+        #)
         
             
 
@@ -217,8 +219,8 @@ class ResNet(nn.Module):
         # initial processing before blocks
         input = self.conv1(input)
         input = self.bn1(input)
-        input = self.relu(input)
         input = self.maxpool(input)
+        input = self.relu(input)
 
         # run it through the blocks
         input = self.bl1(input)
@@ -262,8 +264,8 @@ net = ResNet(8)
 ############################################################################
 ######      Specify the optimizer and loss function                   ######
 ############################################################################
-optimizer = optim.Adam(net.parameters(),lr=0.001, betas=(0.9,0.999), weight_decay=0.0001)
-# optimizer = optim.SGD(net.parameters(),lr=0.001,momentum=0.9)
+#optimizer = optim.Adam(net.parameters(),lr=0.0015, betas=(0.9,0.999), weight_decay=0.0001)
+optimizer = optim.SGD(net.parameters(),lr=0.0010,momentum=0.9, weight_decay=0.00005)
 
 loss_func = nn.CrossEntropyLoss()
 
@@ -275,15 +277,39 @@ loss_func = nn.CrossEntropyLoss()
 # Normally, the default weight initialization and fixed learing rate
 # should work fine. But, we have made it possible for you to define
 # your own custom weight initialization and lr scheduler, if you wish.
-def weights_init(m):
-    return
 
-scheduler = None
+# from https://androidkt.com/initialize-weight-bias-pytorch/
+def weights_init(m):
+    if isinstance(m, nn.Conv2d):
+        nn.init.kaiming_uniform_(m.weight.data,nonlinearity='relu')
+        if m.bias is not None:
+            nn.init.constant_(m.bias.data, 0)
+    elif isinstance(m, nn.BatchNorm2d):
+        nn.init.constant_(m.weight.data, 1)
+        nn.init.constant_(m.bias.data, 0)
+    elif isinstance(m, nn.Linear):
+        nn.init.kaiming_uniform_(m.weight.data)
+        nn.init.constant_(m.bias.data, 0)
+
+scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=0.001, max_lr=0.01)
 
 ############################################################################
 #######              Metaparameters and training options              ######
 ############################################################################
 dataset = "./data"
 train_val_split = 0.8
-batch_size = 50
+batch_size = 500
 epochs = 200
+
+'''
+THINGS TO TRY:
+
+CONV2D -> MAXPOOL -> RELU instead of CONV2D -> RELU -> MAXPOOL -> Done
+
+Spatial Dropout -> Done with Dropout2d https://pytorch.org/docs/stable/generated/torch.nn.Dropout2d.html -> Idk how to use
+
+Learning Rate Scheduler -> ExponentialLR, MultistepLR etc https://pytorch.org/docs/stable/optim.html -> Done
+SGD + Momentum with weight initialization https://pytorch.org/docs/stable/generated/torch.optim.SGD.html -> Done
+Initialize with  https://androidkt.com/initialize-weight-bias-pytorch/ -> Done
+
+'''
