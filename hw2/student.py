@@ -54,8 +54,12 @@ def transform(mode):
     """
     if mode == 'train':
         tf = transforms.Compose([
-            transforms.RandomAffine(degrees=0, translate=(0.2,0.2)),
+            transforms.RandomAffine(degrees=30, translate=(0.1,0.2), scale=(0.5, 1)),
+            transforms.RandomAdjustSharpness(sharpness_factor=2),
+            transforms.RandomPerspective(),
+            
             transforms.RandomHorizontalFlip(),
+            transforms.RandomVerticalFlip(),
             transforms.ToTensor(),
         ])
 
@@ -291,7 +295,7 @@ def weights_init(m):
         nn.init.kaiming_uniform_(m.weight.data)
         nn.init.constant_(m.bias.data, 0)
 
-scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=0.001, max_lr=0.01)
+scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=0.001, max_lr=0.01, step_size_up=4)
 
 ############################################################################
 #######              Metaparameters and training options              ######
