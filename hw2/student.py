@@ -204,7 +204,13 @@ class ResNet(nn.Module):
         self.bl3 = self.make_blocks(2, 256, stride=2)
         self.bl4 = self.make_blocks(2, 512, stride=2)
 
-        self.fc = nn.Linear(512, output_classes)    
+        self.fc = nn.Sequential(
+            nn.Linear(512, 512),
+            nn.Dropout(),
+            nn.Linear(512, output_classes)
+        )
+        
+            
 
 
     def forward(self, input):
@@ -257,6 +263,7 @@ net = ResNet(8)
 ######      Specify the optimizer and loss function                   ######
 ############################################################################
 optimizer = optim.Adam(net.parameters(),lr=0.001, betas=(0.9,0.999), weight_decay=0.0001)
+# optimizer = optim.SGD(net.parameters(),lr=0.001,momentum=0.9)
 
 loss_func = nn.CrossEntropyLoss()
 
@@ -278,5 +285,5 @@ scheduler = None
 ############################################################################
 dataset = "./data"
 train_val_split = 0.8
-batch_size = 200
+batch_size = 50
 epochs = 200
