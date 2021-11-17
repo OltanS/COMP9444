@@ -57,7 +57,8 @@ def transform(mode):
             transforms.RandomAffine(degrees=30, translate=(0.1,0.2), scale=(0.5, 1)),
             transforms.RandomHorizontalFlip(),        
             transforms.RandomAdjustSharpness(sharpness_factor=2),
-            transforms.RandomPerspective(),
+            transforms.RandomAutocontrast(),
+            transforms.RandomPerspective(distortion_scale=0.2),
             transforms.RandomVerticalFlip(),
             transforms.ToTensor(),
         ])
@@ -161,7 +162,7 @@ net = ResNet(8)
 ############################################################################
 ######      Specify the optimizer and loss function                   ######
 ############################################################################
-optimizer = optim.Adam(net.parameters(),lr=0.0010, betas=(0.9,0.999), weight_decay=0.00001)
+optimizer = optim.Adam(net.parameters(),lr=0.0010, betas=(0.9,0.999), weight_decay=0.00002)
 
 loss_func = nn.CrossEntropyLoss()
 
@@ -193,7 +194,7 @@ scheduler = None
 ############################################################################
 dataset = "./data"
 train_val_split = 0.8
-batch_size = 50
+batch_size = 200
 epochs = 500
 
 '''
