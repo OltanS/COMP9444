@@ -73,11 +73,13 @@ def transform(mode):
 class Layer(nn.Module):
     def __init__(self, in_channels, out_channels, identity_downsample=None, stride=1):
         super(Layer, self).__init__()
-
-        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1)
+        self.expansion = 4
+        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0)
         self.bn1 = nn.BatchNorm2d(out_channels)
-        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=1, stride=1, padding=0)
+        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=stride, padding=1)
         self.bn2 = nn.BatchNorm2d(out_channels)
+        self.conv3 = nn.Conv2d(out_channels, out_channels * self.expansion, kernel_size=1, stride=1, padding=0)
+        self.bn3 = nn.BatchNorm2d(out_channels * self.expansion)
         self.relu = nn.ReLU()
         self.identity_downsample = identity_downsample
 
@@ -88,6 +90,9 @@ class Layer(nn.Module):
         input = self.relu(input)
         input = self.conv2(input)
         input = self.bn2(input)
+        input = self.relu(input)
+        input = self.conv3(input)
+        input = self.bn3(input)
 
         # resize input so it can be added to the output of the layer
         if self.identity_downsample is not None:
@@ -102,6 +107,7 @@ class Layer(nn.Module):
 class ResNet(nn.Module):
     def __init__(self, output_classes):
         super(ResNet, self).__init__()
+        self.expansion = 4
         self.in_channels = 64
         # 3 because of 3 channel image
         self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3)
@@ -110,22 +116,13 @@ class ResNet(nn.Module):
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
         # create the blocks
-        self.bl1 = self.make_blocks(2, 64, stride=1)
-        self.bl2 = self.make_blocks(2, 128, stride=2)
-        self.bl3 = self.make_blocks(2, 256, stride=2)
-        self.bl4 = self.make_blocks(2, 512, stride=2)
+        self.bl1 = self.make_blocks(3, 64, stride=1)
+        self.bl2 = self.make_blocks(4, 128, stride=2)
+        self.bl3 = self.make_blocks(6, 256, stride=2)
+        self.bl4 = self.make_blocks(3, 512, stride=2)
 
-        self.fc = nn.Linear(512, output_classes)
-        
-        #self.fc = nn.Sequential(
-        #    nn.Linear(512, 512),
-        #    nn.Dropout(),
-        # self.fc = nn.Linear(512, output_classes)
-        #)
-        
-            
-
-
+        self.fc = nn.Linear(512 * self.expansion, output_classes)
+    
     def forward(self, input):
         # initial processing before blocks
         input = self.conv1(input)
@@ -154,12 +151,12 @@ class ResNet(nn.Module):
         layers = []
         # downsample so the addition operations work between differently sized input and output
         # for the resnet skipping to function
-        identity_downsample = nn.Sequential(nn.Conv2d(self.in_channels, intermediate_channels, kernel_size=1, stride=stride),
-                                            nn.BatchNorm2d(intermediate_channels))
+        identity_downsample = nn.Sequential(nn.Conv2d(self.in_channels, intermediate_channels * self.expansion, kernel_size=1, stride=stride),
+                                            nn.BatchNorm2d(intermediate_channels * self.expansion))
         layer = Layer(self.in_channels, intermediate_channels, identity_downsample, stride)
         layers.append(layer)
         # update in_channels to set up next layers correctly
-        self.in_channels = intermediate_channels # 256
+        self.in_channels = intermediate_channels * self.expansion # 256
         for i in range(num_blocks - 1):
             layer = Layer(self.in_channels, intermediate_channels)
             layers.append(layer) # 256 -> 64, 64*4 (256) again
@@ -167,19 +164,15 @@ class ResNet(nn.Module):
         return nn.Sequential(*layers)
 
 
-# net = Network()
-# net = LinNet(60)
-# net = ConvNet()
 net = ResNet(8)
     
 ############################################################################
 ######      Specify the optimizer and loss function                   ######
 ############################################################################
 #optimizer = optim.Adam(net.parameters(),lr=0.0015, betas=(0.9,0.999), weight_decay=0.0001)
-optimizer = optim.SGD(net.parameters(),lr=0.0010,momentum=0.9, weight_decay=0.00005)
+optimizer = optim.SGD(net.parameters(),lr=0.0100,momentum=0.9, weight_decay=0.0001, nesterov=True)
 
 loss_func = nn.CrossEntropyLoss()
-
 
 ############################################################################
 ######  Custom weight initialization and lr scheduling are optional   ######
@@ -202,15 +195,15 @@ def weights_init(m):
         nn.init.kaiming_uniform_(m.weight.data)
         nn.init.constant_(m.bias.data, 0)
 
-scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=0.001, max_lr=0.01, step_size_up=4)
+scheduler = None
 
 ############################################################################
 #######              Metaparameters and training options              ######
 ############################################################################
 dataset = "./data"
 train_val_split = 0.8
-batch_size = 500
-epochs = 200
+batch_size = 50
+epochs = 500
 
 '''
 THINGS TO TRY:
@@ -220,8 +213,11 @@ CONV2D -> MAXPOOL -> RELU instead of CONV2D -> RELU -> MAXPOOL -> Done
 Spatial Dropout -> with Dropout2d https://pytorch.org/docs/stable/generated/torch.nn.Dropout2d.html -> Idk how to use
 
 Data augmentation -> torch.transforms -> Done
-Learning Rate Scheduler -> ExponentialLR, MultistepLR etc https://pytorch.org/docs/stable/optim.html -> Done
+
+Learning Rate Scheduler -> ExponentialLR, MultistepLR etc https://pytorch.org/docs/stable/optim.html -> Done -> Disabled now
+
 SGD + Momentum with weight initialization https://pytorch.org/docs/stable/generated/torch.optim.SGD.html -> Done
+
 Initialize with  https://androidkt.com/initialize-weight-bias-pytorch/ -> Done
 
 '''
