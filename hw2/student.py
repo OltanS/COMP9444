@@ -73,13 +73,10 @@ def transform(mode):
 class Layer(nn.Module):
     def __init__(self, in_channels, out_channels, identity_downsample=None, stride=1):
         super(Layer, self).__init__()
-        self.expansion = 4
-        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0)
+        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1)
         self.bn1 = nn.BatchNorm2d(out_channels)
-        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=stride, padding=1)
-        self.bn2 = nn.BatchNorm2d(out_channels)
-        self.conv3 = nn.Conv2d(out_channels, out_channels * self.expansion, kernel_size=1, stride=1, padding=0)
-        self.bn3 = nn.BatchNorm2d(out_channels * self.expansion)
+        self.conv2 = nn.Conv2d(out_channels, out_channels * self.expansion, kernel_size=1, stride=1, padding=0)
+        self.bn2 = nn.BatchNorm2d(out_channels * self.expansion)
         self.relu = nn.ReLU()
         self.identity_downsample = identity_downsample
 
@@ -90,9 +87,6 @@ class Layer(nn.Module):
         input = self.relu(input)
         input = self.conv2(input)
         input = self.bn2(input)
-        input = self.relu(input)
-        input = self.conv3(input)
-        input = self.bn3(input)
 
         # resize input so it can be added to the output of the layer
         if self.identity_downsample is not None:
@@ -107,7 +101,6 @@ class Layer(nn.Module):
 class ResNet(nn.Module):
     def __init__(self, output_classes):
         super(ResNet, self).__init__()
-        self.expansion = 4
         self.in_channels = 64
         # 3 because of 3 channel image
         self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3)
@@ -121,7 +114,7 @@ class ResNet(nn.Module):
         self.bl3 = self.make_blocks(6, 256, stride=2)
         self.bl4 = self.make_blocks(3, 512, stride=2)
 
-        self.fc = nn.Linear(512 * self.expansion, output_classes)
+        self.fc = nn.Linear(512, output_classes)
     
     def forward(self, input):
         # initial processing before blocks
@@ -151,12 +144,12 @@ class ResNet(nn.Module):
         layers = []
         # downsample so the addition operations work between differently sized input and output
         # for the resnet skipping to function
-        identity_downsample = nn.Sequential(nn.Conv2d(self.in_channels, intermediate_channels * self.expansion, kernel_size=1, stride=stride),
-                                            nn.BatchNorm2d(intermediate_channels * self.expansion))
+        identity_downsample = nn.Sequential(nn.Conv2d(self.in_channels, intermediate_channels, kernel_size=1, stride=stride),
+                                            nn.BatchNorm2d(intermediate_channels))
         layer = Layer(self.in_channels, intermediate_channels, identity_downsample, stride)
         layers.append(layer)
         # update in_channels to set up next layers correctly
-        self.in_channels = intermediate_channels * self.expansion # 256
+        self.in_channels = intermediate_channels # 256
         for i in range(num_blocks - 1):
             layer = Layer(self.in_channels, intermediate_channels)
             layers.append(layer) # 256 -> 64, 64*4 (256) again
