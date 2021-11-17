@@ -161,8 +161,7 @@ net = ResNet(8)
 ############################################################################
 ######      Specify the optimizer and loss function                   ######
 ############################################################################
-#optimizer = optim.Adam(net.parameters(),lr=0.0015, betas=(0.9,0.999), weight_decay=0.0001)
-optimizer = optim.SGD(net.parameters(),lr=0.0100,momentum=0.9, weight_decay=0.0001, nesterov=True)
+optimizer = optim.Adam(net.parameters(),lr=0.0010, betas=(0.9,0.999), weight_decay=0.00001)
 
 loss_func = nn.CrossEntropyLoss()
 
