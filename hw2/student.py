@@ -131,37 +131,49 @@ class ConvNet(nn.Module):
         super().__init__()
 
         self.convolutional_layer = nn.Sequential(
-            nn.Conv2d(in_channels=3, out_channels=6, kernel_size=(5,5)),
+            nn.Conv2d(in_channels=3, out_channels=64, kernel_size=3, padding=1),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=(2,2),stride=(2,2),padding=0),
-            nn.Conv2d(in_channels=6, out_channels=16, kernel_size=(5,5)),
+            nn.BatchNorm2d(64),
+            nn.MaxPool2d(kernel_size=2,stride=(2,2),padding=1),
+            nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, padding=1),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=(2,2),stride=(2,2),padding=0),
-            nn.Conv2d(in_channels=16, out_channels=120, kernel_size=(5,5)),
+            nn.BatchNorm2d(128),
+            nn.MaxPool2d(kernel_size=2,stride=(2,2),padding=1),
+            nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, padding=1),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=(2,2),stride=(2,2),padding=0),
-            nn.Conv2d(in_channels=120, out_channels=120, kernel_size=(5,5)),
-            nn.ReLU()          
+            nn.BatchNorm2d(256),
+            nn.MaxPool2d(kernel_size=2,stride=(2,2),padding=1),
+            nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.BatchNorm2d(512),
+            nn.MaxPool2d(kernel_size=2, stride=2)
         )
 
         self.linear_layer = nn.Sequential(
             nn.Dropout(),
-            nn.Linear(in_features=2*2*120, out_features=84),
+            nn.Linear(in_features=5*5*512, out_features=768),
             nn.ReLU(),
             nn.Dropout(),
-            nn.Linear(in_features=84, out_features=84),
+            nn.Linear(in_features=768, out_features=768),
             nn.ReLU(),
             nn.Dropout(),
-            nn.Linear(in_features=84, out_features=8),
+            nn.Linear(in_features=768, out_features=8),
             nn.ReLU()
         )
         
     def forward(self, input):
         input = self.convolutional_layer(input)
         # print(f"input shape: {input.shape}")
-        input = input.view(-1,2*2*120)
-        output = self.linear_layer(input)  
-        return output
+        input = input.view(input.shape[0], -1)
+        # print(input.shape)
+        input = self.linear_layer(input)  
+        return input
+
+"""
+Resnet implementation
+
+"""
+
 
 class Layer(nn.Module):
     def __init__(self, in_channels, out_channels, identity_downsample=None, stride=1):
@@ -232,11 +244,15 @@ class ResNet(nn.Module):
         input = self.bl3(input)
         input = self.bl4(input)
 
+        print(input.shape)
         # final processing
         avg_pool = nn.AdaptiveAvgPool2d((1, 1))
         input = avg_pool(input)
+        # print(input.shape)
         # linearise for linear layer
+        # print(input.shape)
         input = input.view(input.shape[0], -1)
+        # print(input.shape)
         input = self.fc(input)
         return input       
 
@@ -262,14 +278,14 @@ class ResNet(nn.Module):
 
 # net = Network()
 # net = LinNet(60)
-# net = ConvNet()
-net = ResNet(8)
+net = ConvNet()
+# net = ResNet(8)
     
 ############################################################################
 ######      Specify the optimizer and loss function                   ######
 ############################################################################
-#optimizer = optim.Adam(net.parameters(),lr=0.0015, betas=(0.9,0.999), weight_decay=0.0001)
-optimizer = optim.SGD(net.parameters(),lr=0.0010,momentum=0.9, weight_decay=0.00005)
+optimizer = optim.Adam(net.parameters(),lr=0.001, betas=(0.9,0.999), weight_decay=0.0001)
+# optimizer = optim.SGD(net.parameters(),lr=0.0010,momentum=0.9, weight_decay=0.00005)
 
 loss_func = nn.CrossEntropyLoss()
 
@@ -284,25 +300,27 @@ loss_func = nn.CrossEntropyLoss()
 
 # from https://androidkt.com/initialize-weight-bias-pytorch/
 def weights_init(m):
-    if isinstance(m, nn.Conv2d):
-        nn.init.kaiming_uniform_(m.weight.data,nonlinearity='relu')
-        if m.bias is not None:
-            nn.init.constant_(m.bias.data, 0)
-    elif isinstance(m, nn.BatchNorm2d):
-        nn.init.constant_(m.weight.data, 1)
-        nn.init.constant_(m.bias.data, 0)
-    elif isinstance(m, nn.Linear):
-        nn.init.kaiming_uniform_(m.weight.data)
-        nn.init.constant_(m.bias.data, 0)
+    pass
+    # if isinstance(m, nn.Conv2d):
+    #     nn.init.kaiming_uniform_(m.weight.data,nonlinearity='relu')
+    #     if m.bias is not None:
+    #         nn.init.constant_(m.bias.data, 0)
+    # elif isinstance(m, nn.BatchNorm2d):
+    #     nn.init.constant_(m.weight.data, 1)
+    #     nn.init.constant_(m.bias.data, 0)
+    # elif isinstance(m, nn.Linear):
+    #     nn.init.kaiming_uniform_(m.weight.data)
+    #     nn.init.constant_(m.bias.data, 0)
 
-scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=0.001, max_lr=0.01, step_size_up=4)
+# scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=0.001, max_lr=0.01, step_size_up=4)
+scheduler = None
 
 ############################################################################
 #######              Metaparameters and training options              ######
 ############################################################################
 dataset = "./data"
 train_val_split = 0.8
-batch_size = 500
+batch_size = 200
 epochs = 200
 
 '''
