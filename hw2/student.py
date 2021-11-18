@@ -54,10 +54,9 @@ def transform(mode):
     """
     if mode == 'train':
         tf = transforms.Compose([
-            transforms.RandomAffine(degrees=30, translate=(0.1,0.2), scale=(0.5, 1)),
+            transforms.RandomAffine(degrees=0, translate=(0,0.2), scale=(0.5, 1)),
             transforms.RandomHorizontalFlip(),        
-            transforms.RandomAdjustSharpness(sharpness_factor=2),
-            transforms.RandomAutocontrast(),
+            transforms.RandomApply(torch.nn.ModuleList([transforms.GaussianBlur((5, 5), sigma=(0.1, 0.3)),]), p=0.2),
             transforms.RandomPerspective(distortion_scale=0.2),
             transforms.RandomVerticalFlip(),
             transforms.ToTensor(),
@@ -115,6 +114,7 @@ class ResNet(nn.Module):
         self.bl4 = self.make_blocks(3, 512, stride=2)
 
         self.fc = nn.Linear(512, output_classes)
+        self.drop = nn.Dropout(0.5)
     
     def forward(self, input):
         # initial processing before blocks
@@ -134,6 +134,7 @@ class ResNet(nn.Module):
         input = avg_pool(input)
         # linearise for linear layer
         input = input.view(input.shape[0], -1)
+        input = self.drop(input)
         input = self.fc(input)
         return input       
 
@@ -162,7 +163,7 @@ net = ResNet(8)
 ############################################################################
 ######      Specify the optimizer and loss function                   ######
 ############################################################################
-optimizer = optim.Adam(net.parameters(),lr=0.0010, betas=(0.9,0.999), weight_decay=0.00002)
+optimizer = optim.Adam(net.parameters(),lr=0.0010, betas=(0.9,0.999), weight_decay=0.00015)
 
 loss_func = nn.CrossEntropyLoss()
 
@@ -194,8 +195,8 @@ scheduler = None
 ############################################################################
 dataset = "./data"
 train_val_split = 0.8
-batch_size = 200
-epochs = 500
+batch_size = 32
+epochs = 1000
 
 '''
 THINGS TO TRY:
