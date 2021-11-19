@@ -147,7 +147,7 @@ class ResNet(nn.Module):
         super(ResNet, self).__init__()
         self.in_channels = 64
         # 3 because of 3 channel image
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3)
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=1, stride=1, padding=0)
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU()
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
@@ -155,10 +155,10 @@ class ResNet(nn.Module):
         # create the blocks
         self.bl1 = self.make_blocks(3, 64, stride=1)
         self.bl2 = self.make_blocks(4, 128, stride=2)
-        self.bl3 = self.make_blocks(6, 256, stride=2)
-        self.bl4 = self.make_blocks(3, 512, stride=2)
-        # self.bl3 = self.make_bottleneck_blocks(6, 256, stride=1)
-        # self.bl4 = self.make_bottleneck_blocks(3, 512, stride=1)
+        # self.bl3 = self.make_blocks(6, 256, stride=2)
+        # self.bl4 = self.make_blocks(3, 512, stride=2)
+        self.bl3 = self.make_bottleneck_blocks(6, 256, stride=1)
+        self.bl4 = self.make_bottleneck_blocks(3, 512, stride=1)
 
         self.fc = nn.Linear(512, output_classes)
         # self.fc = nn.Sequential(
@@ -235,7 +235,7 @@ net = ResNet(8)
 ######      Specify the optimizer and loss function                   ######
 ############################################################################
 optimizer = optim.Adam(net.parameters(),lr=0.001, betas=(0.9,0.999))
-# optimizer = optim.SGD(net.parameters(),lr=0.01,momentum=0.9, weight_decay=0.007, nesterov=True)
+# optimizer = optim.SGD(net.parameters(),lr=0.001,momentum=0.9, weight_decay=0.001, nesterov=True)
 
 loss_func = nn.CrossEntropyLoss()
 
@@ -263,7 +263,7 @@ def weights_init(m):
 
 scheduler = None
 # scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=0.001, max_lr=0.01, step_size_up=4)
-# scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.4)
 # lambda1 = lambda epoch: epoch/10
 # scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda1)
 
@@ -274,7 +274,7 @@ scheduler = None
 dataset = "./data"
 train_val_split = 0.8
 batch_size = 32
-epochs = 200
+epochs = 500
 
 '''
 THINGS TO TRY:
