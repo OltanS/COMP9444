@@ -234,7 +234,7 @@ net = ResNet(8)
 ############################################################################
 ######      Specify the optimizer and loss function                   ######
 ############################################################################
-optimizer = optim.Adam(net.parameters(),lr=0.001, betas=(0.9,0.999))
+optimizer = optim.Adam(net.parameters(),lr=0.005, betas=(0.9,0.999))
 # optimizer = optim.SGD(net.parameters(),lr=0.001,momentum=0.9, weight_decay=0.001, nesterov=True)
 
 loss_func = nn.CrossEntropyLoss()
@@ -263,7 +263,7 @@ def weights_init(m):
 
 scheduler = None
 # scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=0.001, max_lr=0.01, step_size_up=4)
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.4)
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
 # lambda1 = lambda epoch: epoch/10
 # scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda1)
 
